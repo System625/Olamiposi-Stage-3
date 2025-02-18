@@ -1,0 +1,73 @@
+---
+description: 
+globs: 
+---
+Use the Language Detector API
+The Language Detector API is part of the larger family of the Translator API. First, run feature detection to see if the browser supports the Language Detector API.
+
+
+if ('ai' in self && 'languageDetector' in self.ai) {
+  // The Language Detector API is available.
+}  
+
+  
+Model download
+Language detection depends on a model that is fine-tuned for the specific task of detecting languages. While the API is built in the browser, the model is downloaded on-demand the first time a site tries to use the API. In Chrome, this model is very small by comparison with other models. In fact, it might already be present given that this model is also used by Chrome browser features.
+
+To see if the model is ready to use, call the asynchronous self.ai.languageDetector.capabilities() function and inspect the available field. There are three possible responses:
+
+'no': The current browser supports the Language Detector API, but it can't be used at the moment. For example, because there isn't enough free disk space available to download the model.
+'readily': The current browser supports the Language Detector API, and it can be used right away.
+'after-download': The current browser supports the Language Detector API, but it needs to download the model first.
+
+To trigger the download and instantiate the language detector, call the asynchronous self.ai.languageDetector.create() function. If the response to capabilities() was 'after-download', it's best practice to listen for download progress, so you can inform the user in case the download takes time.
+
+To see if a given language can be detected, call the languageAvailable() function.
+
+
+const languageDetectorCapabilities = await self.ai.languageDetector.capabilities();
+languageDetectorCapabilities.languageAvailable('es');
+// 'readily'
+
+The following example demonstrates how to initialize the language detector.
+
+
+const languageDetectorCapabilities = await self.ai.languageDetector.capabilities();
+const canDetect = languageDetectorCapabilities.capabilities;
+let detector;
+if (canDetect === 'no') {
+  // The language detector isn't usable.
+  return;
+}
+if (canDetect === 'readily') {
+  // The language detector can immediately be used.
+  detector = await self.ai.languageDetector.create();
+} else {
+  // The language detector can be used after model download.
+  detector = await self.ai.languageDetector.create({
+    monitor(m) {
+      m.addEventListener('downloadprogress', (e) => {
+        console.log(`Downloaded ${e.loaded} of ${e.total} bytes.`);
+      });
+    },
+  });
+  await detector.ready;
+}
+
+The detect() function can return either the first result, the likeliest answer, or iterate over the ranked candidates with the level of confidence. This is returned as a list of {detectedLanguage, confidence} objects. The confidence level is expressed as a value between 0.0 (lowest confidence) and 1.0 (highest confidence).
+
+
+const someUserText \= 'Hallo und herzlich willkommen\!';
+const results \= await detector.detect(someUserText);
+for (const result of results) {
+  // Show the full list of potential languages with their likelihood, ranked
+  // from most likely to least likely. In practice, one would pick the top
+  // language(s) that cross a high enough threshold.
+  console.log(result.detectedLanguage, result.confidence);
+}
+// (Output truncated):
+// de 0.9993835687637329
+// en 0.00038279531872831285
+// nl 0.00010798392031574622
+// ...
+
