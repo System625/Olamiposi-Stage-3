@@ -520,74 +520,83 @@ export default function Home() {
   };
 
   return (
-    <main className="container mx-auto p-4 max-w-4xl h-screen flex flex-col">
+    <main className="container mx-auto p-4 max-w-4xl min-h-screen flex flex-col">
       <h1 className="text-4xl font-bold mb-4 text-center">AI Text Processor</h1>
       
-      {downloadStatus.isDownloading && downloadStatus.type === 'summarizer' && (
-        <Card className="p-6 mb-4 bg-blue-50 border-blue-200">
-          <h2 className="text-lg font-semibold mb-4">Downloading Summarizer Model...</h2>
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
-            <div 
-              className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-              style={{ width: `${(downloadStatus.progress / downloadStatus.total) * 100}%` }}
-            ></div>
-          </div>
-          <p className="text-sm text-gray-600 mt-2">
-            {Math.round((downloadStatus.progress / downloadStatus.total) * 100)}% complete
-          </p>
-        </Card>
-      )}
+      <div className="space-y-4 mb-4">
+        {error && (
+          <Card className="p-6 bg-red-50 border-red-200">
+            <h2 className="text-lg font-semibold mb-4 text-red-700">Error</h2>
+            <p className="text-red-600">{error}</p>
+          </Card>
+        )}
 
-      {!apiAvailability.summarizer && !downloadStatus.isDownloading && (
-        <Card className="p-6 mb-4 bg-yellow-50 border-yellow-200">
-          <h2 className="text-lg font-semibold mb-4">Setup Required</h2>
-          <p className="mb-4">To use this application, you need to:</p>
-          <ol className="list-decimal list-inside space-y-2">
-            <li>Use Google Chrome browser</li>
-            <li>Enable experimental AI features in Chrome:
-              <ol className="list-disc list-inside ml-6 mt-2 space-y-1">
-                <li>Open <code className="bg-gray-100 px-2 py-1 rounded">chrome://flags</code> in your browser</li>
-                <li>Enable &quot;Experimental AI features&quot;</li>
-                <li>Enable &quot;AI Summarization&quot;</li>
-                <li>Enable &quot;Translation API&quot;</li>
-                <li>Enable &quot;Language Detection API&quot;</li>
-                <li>Restart Chrome</li>
-              </ol>
-            </li>
-          </ol>
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <h3 className="font-semibold mb-2">Additional Resources</h3>
-            <p className="text-sm text-gray-600 mb-4">Note: You may need to turn on experimental feature flags in your Chrome browser to access these native AI APIs.</p>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <a href="https://developer.chrome.com/docs/ai/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                  Chrome AI APIs Overview
-                </a>
+        {downloadStatus.isDownloading && downloadStatus.type === 'summarizer' && (
+          <Card className="p-6 bg-blue-50 border-blue-200">
+            <h2 className="text-lg font-semibold mb-4">Downloading Summarizer Model...</h2>
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div 
+                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                style={{ width: `${(downloadStatus.progress / downloadStatus.total) * 100}%` }}
+              ></div>
+            </div>
+            <p className="text-sm text-gray-600 mt-2">
+              {Math.round((downloadStatus.progress / downloadStatus.total) * 100)}% complete
+            </p>
+          </Card>
+        )}
+
+        {!apiAvailability.summarizer && !downloadStatus.isDownloading && (
+          <Card className="p-6 bg-yellow-50 border-yellow-200">
+            <h2 className="text-lg font-semibold mb-4">Setup Required</h2>
+            <p className="mb-4">To use this application, you need to:</p>
+            <ol className="list-decimal list-inside space-y-2">
+              <li>Use Google Chrome browser</li>
+              <li>Enable experimental AI features in Chrome:
+                <ol className="list-disc list-inside ml-6 mt-2 space-y-1">
+                  <li>Open <code className="bg-gray-100 px-2 py-1 rounded">chrome://flags</code> in your browser</li>
+                  <li>Enable &quot;Experimental AI features&quot;</li>
+                  <li>Enable &quot;AI Summarization&quot;</li>
+                  <li>Enable &quot;Translation API&quot;</li>
+                  <li>Enable &quot;Language Detection API&quot;</li>
+                  <li>Restart Chrome</li>
+                </ol>
               </li>
-              <li>
-                <a href="https://developer.chrome.com/docs/ai/summarizer-api" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                  Summarizer API Documentation
-                </a>
-              </li>
-              <li>
-                <a href="https://developer.chrome.com/docs/ai/translator-api" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                  Translator API Documentation
-                </a>
-              </li>
-              <li>
-                <a href="https://developer.chrome.com/docs/ai/language-detection" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                  Language Detection API Documentation
-                </a>
-              </li>
-              <li>
-                <a href="https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Asynchronous" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                  Asynchronous JavaScript Handling
-                </a>
-              </li>
-            </ul>
-          </div>
-        </Card>
-      )}
+            </ol>
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+              <h3 className="font-semibold mb-2">Additional Resources</h3>
+              <p className="text-sm text-gray-600 mb-4">Note: You may need to turn on experimental feature flags in your Chrome browser to access these native AI APIs.</p>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <a href="https://developer.chrome.com/docs/ai/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                    Chrome AI APIs Overview
+                  </a>
+                </li>
+                <li>
+                  <a href="https://developer.chrome.com/docs/ai/summarizer-api" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                    Summarizer API Documentation
+                  </a>
+                </li>
+                <li>
+                  <a href="https://developer.chrome.com/docs/ai/translator-api" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                    Translator API Documentation
+                  </a>
+                </li>
+                <li>
+                  <a href="https://developer.chrome.com/docs/ai/language-detection" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                    Language Detection API Documentation
+                  </a>
+                </li>
+                <li>
+                  <a href="https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Asynchronous" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                    Asynchronous JavaScript Handling
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </Card>
+        )}
+      </div>
       
       <Card className="flex-1 p-6 shadow-lg mb-4 overflow-hidden flex flex-col">
         <div className="flex-1 overflow-y-auto mb-4 space-y-4">
@@ -649,12 +658,6 @@ export default function Home() {
           ))}
           <div ref={messagesEndRef} />
         </div>
-
-        {error && (
-          <div className="text-red-500 text-center p-4 mb-4" role="alert">
-            {error}
-          </div>
-        )}
 
         <div className="flex flex-col sm:flex-row gap-4 items-end">
           <div className="w-full sm:flex-1">

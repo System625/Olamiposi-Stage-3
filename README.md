@@ -1,36 +1,126 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI Text Processor
 
-## Getting Started
+A powerful text processing application built with Next.js that leverages Chrome's native AI APIs for text summarization, translation, and language detection. The application provides a modern, user-friendly interface for processing text with advanced AI capabilities.
 
-First, run the development server:
+## Features
 
+- **Text Summarization**: Generate concise summaries of long texts while maintaining important details and context
+- **Language Translation**: Translate text between multiple languages
+- **Language Detection**: Automatically detect the language of input text
+- **Real-time Processing**: Process text in real-time with immediate feedback
+- **Modern UI**: Clean and responsive interface built with modern design principles
+
+## Prerequisites
+
+- Google Chrome browser (required for AI APIs)
+- Node.js 18.17.0 or later
+- npm, yarn, or pnpm for package management
+
+## Setup Instructions
+
+1. Clone the repository:
+```bash
+git clone [repository-url]
+cd text-processor
+```
+
+2. Install dependencies:
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+```
+
+3. Enable Chrome AI Features:
+   - Open `chrome://flags` in your Chrome browser
+   - Enable the following flags:
+     - "Experimental AI features"
+     - "AI Summarization"
+     - "Translation API"
+     - "Language Detection API"
+   - Restart Chrome after enabling these flags
+
+4. Run the development server:
 ```bash
 npm run dev
 # or
 yarn dev
 # or
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. Open [http://localhost:3000](http://localhost:3000) with Chrome to use the application
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Troubleshooting for Low-Spec Systems
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+If you encounter the error "The device is not eligible for running on-device model", follow these steps:
+
+1. Enable Optimization Guide:
+   - Go to `chrome://flags/`
+   - Find "Optimization Guide On Device"
+   - Set it to "Enabled ByPassPerfRequirement"
+   - Restart Chrome
+
+2. Download Required Components:
+   - Navigate to `chrome://components/`
+   - Look for "Optimization Guide On Device Model" (version 0.0.0.0)
+   - Click to download the component
+
+3. Verify API Support:
+   ```javascript
+   if ('ai' in self && 'summarizer' in self.ai) {
+     // The Summarizer API is supported
+   }
+   ```
+
+4. Monitor Download Progress:
+   The application automatically tracks model download progress. You can monitor it in the browser console:
+   ```javascript
+   const summarizer = await ai.summarizer.create({
+     monitor(m) {
+       m.addEventListener('downloadprogress', (e) => {
+         console.log(`Downloaded ${e.loaded} of ${e.total} bytes.`);
+       });
+     }
+   });
+   ```
+
+## Usage
+
+1. Type or paste your text in the input area
+2. For translation:
+   - Select the target language from the dropdown
+   - Click the "Translate" button
+3. For summarization:
+   - Enter text longer than 150 characters
+   - Click the "Summarize" button when available
+4. The application will automatically detect the input language
+
+## Technical Details
+
+- Built with Next.js 14
+- Uses Chrome's native AI APIs for processing
+- Implements real-time language detection
+- Supports multiple language pairs for translation
+- Provides progress tracking for model downloads
+
+## Browser Compatibility
+
+This application requires Google Chrome with experimental AI features enabled. Other browsers are not supported at this time due to the dependency on Chrome's native AI APIs.
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+- [Chrome AI APIs Overview](https://developer.chrome.com/docs/ai/)
+- [Summarizer API Documentation](https://developer.chrome.com/docs/ai/summarizer-api)
+- [Translator API Documentation](https://developer.chrome.com/docs/ai/translator-api)
+- [Language Detection API Documentation](https://developer.chrome.com/docs/ai/language-detection)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Contributing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+[Add your license information here]
