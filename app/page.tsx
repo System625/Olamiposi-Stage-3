@@ -186,10 +186,10 @@ export default function Home() {
           setDownloadStatus(prev => ({ ...prev, isDownloading: false, type: null }));
           setSummarizer(summarizerInstance);
           setApiAvailability(prev => ({ ...prev, summarizer: true }));
-        } catch (initError) {
+        } catch {
           setError('Failed to create summarizer instance');
         }
-      } catch (err) {
+      } catch {
         setError('Failed to initialize Summarizer API');
       }
     };
@@ -200,12 +200,10 @@ export default function Home() {
 
   useEffect(() => {
     const initializeTranslator = async () => {
-
       try {
         // Check if the APIs are supported
         const hasTranslator = 'ai' in window && 'translator' in (window.ai || {});
         const hasLanguageDetector = 'ai' in window && 'languageDetector' in (window.ai || {});
-        
 
         if (!hasTranslator || !window.ai?.translator) {
           throw new Error('Translation API is not supported');
@@ -248,6 +246,7 @@ export default function Home() {
               monitor(m) {
                 m.addEventListener('downloadprogress', ((e: Event) => {
                   const progressEvent = e as DownloadProgressEvent;
+                  console.log(`Downloaded detector: ${progressEvent.loaded} of ${progressEvent.total} bytes.`);
                 }) as EventListener);
               },
             });
@@ -261,12 +260,13 @@ export default function Home() {
             if (testResult && testResult.length > 0) {
               setApiAvailability(prev => ({ ...prev, languageDetector: true }));
             }
-          } catch (error) {
+          } catch {
+            // Silently handle language detector errors as it's not critical
           }
         }
         
         setDownloadStatus(prev => ({ ...prev, isDownloading: false, type: null }));
-      } catch (error) {
+      } catch {
         setError('Failed to initialize APIs. Please ensure Chrome flags are enabled and restart browser.');
       }
     };
@@ -300,7 +300,7 @@ export default function Home() {
         code: bestResult.detectedLanguage,
         confidence: bestResult.confidence
       };
-    } catch (error) {      
+    } catch {      
       return undefined;
     }
   };
