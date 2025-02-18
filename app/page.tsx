@@ -555,6 +555,37 @@ export default function Home() {
               </ol>
             </li>
           </ol>
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+            <h3 className="font-semibold mb-2">Additional Resources</h3>
+            <p className="text-sm text-gray-600 mb-4">Note: You may need to turn on experimental feature flags in your Chrome browser to access these native AI APIs.</p>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <a href="https://developer.chrome.com/docs/ai/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  Chrome AI APIs Overview
+                </a>
+              </li>
+              <li>
+                <a href="https://developer.chrome.com/docs/ai/summarizer-api" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  Summarizer API Documentation
+                </a>
+              </li>
+              <li>
+                <a href="https://developer.chrome.com/docs/ai/translator-api" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  Translator API Documentation
+                </a>
+              </li>
+              <li>
+                <a href="https://developer.chrome.com/docs/ai/language-detection" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  Language Detection API Documentation
+                </a>
+              </li>
+              <li>
+                <a href="https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Asynchronous" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  Asynchronous JavaScript Handling
+                </a>
+              </li>
+            </ul>
+          </div>
         </Card>
       )}
       
