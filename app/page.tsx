@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import Bowser from "bowser";
 
 type ProcessingType = 'summarize' | 'translate' | 'detect' | null;
 type APIAvailability = {
@@ -24,6 +25,7 @@ type DownloadStatus = {
   isDownloading: boolean;
   progress: number;
   total: number;
+  type: 'summarizer' | 'translator' | null;
 };
 
 interface DownloadProgressEvent extends Event {
@@ -105,6 +107,104 @@ type Message = {
   showSummarize?: boolean;
 };
 
+// Add new utility functions
+const checkOnlineStatus = (): boolean => {
+  return typeof navigator !== 'undefined' && navigator.onLine;
+};
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const retryOperation = async <T,>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  delayMs: number = 5000
+): Promise<T> => {
+  let lastError: Error | null = null;
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (i < maxRetries - 1) {
+        await delay(delayMs);
+      }
+    }
+  }
+  
+  throw lastError;
+};
+
+// Replace the browser detection utility with bowser
+const getBrowserInfo = () => {
+  if (typeof window === 'undefined') return { name: 'unknown', isMobile: false };
+  
+  const browser = Bowser.getParser(window.navigator.userAgent);
+  const platformType = browser.getPlatformType();
+  
+  return { 
+    name: browser.getBrowserName().toLowerCase(),
+    isMobile: platformType === 'mobile' || platformType === 'tablet',
+    version: browser.getBrowserVersion(),
+    os: browser.getOSName().toLowerCase(),
+    platform: platformType
+  };
+};
+
+// Add type definition for Brave browser's navigator
+interface BraveNavigator extends Navigator {
+  brave?: {
+    isBrave?: () => Promise<boolean>;
+  };
+}
+
+// Update browser detection utility with proper typing
+const isBraveBrowser = async (): Promise<boolean> => {
+  try {
+    const braveNavigator = navigator as BraveNavigator;
+    return !!(braveNavigator.brave && await braveNavigator.brave.isBrave?.());
+  } catch {
+    return false;
+  }
+};
+
+// Update browser compatibility check with proper typing
+const checkBrowserCompatibility = async () => {
+  const browserInfo = getBrowserInfo();
+  
+  // Chrome desktop on Windows, Mac, or Linux
+  if (browserInfo.name === 'chrome' && !browserInfo.isMobile) {
+    // Check if it's actually Brave
+    const isBrave = await isBraveBrowser();
+    if (isBrave) {
+      return { 
+        compatible: false, 
+        message: 'Brave browser is not supported. The AI features require Google Chrome desktop browser with experimental features enabled.' 
+      };
+    }
+    return { compatible: true, message: null };
+  }
+  
+  // Chrome on mobile/tablet
+  if (browserInfo.name === 'chrome' && browserInfo.isMobile) {
+    return { 
+      compatible: false, 
+      message: `Chrome ${browserInfo.platform} is not supported. The AI features require desktop Chrome browser with experimental features enabled. Please use a desktop computer with Chrome browser.` 
+    };
+  }
+  
+  return { 
+    compatible: false, 
+    message: `${browserInfo.name.charAt(0).toUpperCase() + browserInfo.name.slice(1)} browser on ${browserInfo.platform} is not supported. Please use Google Chrome desktop browser and enable experimental AI features:
+    1. Open chrome://flags in Chrome
+    2. Enable "Experimental AI features"
+    3. Enable "AI Summarization"
+    4. Enable "Translation API"
+    5. Enable "Language Detection API"
+    6. Restart Chrome`
+  };
+};
+
 export default function Home() {
   const [inputText, setInputText] = useState<string>('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -120,7 +220,7 @@ export default function Home() {
     translator: false,
     languageDetector: false,
   });
-  const [downloadStatus, setDownloadStatus] = useState<DownloadStatus & { type: 'summarizer' | 'translator' | null }>({
+  const [downloadStatus, setDownloadStatus] = useState<DownloadStatus>({
     isDownloading: false,
     progress: 0,
     total: 0,
@@ -140,57 +240,118 @@ export default function Home() {
 
   useEffect(() => {
     const initializeSummarizer = async () => {
+      // Check browser compatibility first
+      const { compatible, message } = await checkBrowserCompatibility();
+      if (!compatible) {
+        setError(message);
+        return;
+      }
+
+      // Check online status
+      if (!checkOnlineStatus()) {
+        setError('You are currently offline. Please check your internet connection.');
+        return;
+      }
+
       // First check if the API is supported
-      const aiApi = window.ai;
-      if (!('ai' in window && 'summarizer' in (aiApi || {}))) {
-        setError('Summarizer API is not supported in this browser');        
+      if (!('ai' in window) || !window.ai?.summarizer) {
+        setError(`The AI features are not available. Please ensure you:
+          1. Are using Google Chrome desktop browser
+          2. Have enabled experimental AI features in chrome://flags
+          3. Have restarted Chrome after enabling the flags`);        
         return;
       }
 
       try {
-        if (!window.ai?.summarizer) {
-          throw new Error('Summarizer API not found');
-        }
-
-        const { available } = await window.ai.summarizer.capabilities();        
+        // Type assertion to handle the possibly undefined window.ai
+        const ai = window.ai as NonNullable<typeof window.ai>;
+        const { available } = await ai.summarizer.capabilities();        
         
         if (available === 'no') {
-          setError('Summarizer API is not usable on this device');
+          setError('Summarizer API is not usable on this device. Please check Chrome flags and ensure your device meets the requirements.');
           return;
         }
 
-        // Try to create the summarizer instance with progress monitoring
-        try {
-          const summarizerInstance = await window.ai.summarizer.create({
-            type: 'key-points' as const,
-            format: 'markdown' as const,
-            length: 'medium' as const,
-            sharedContext: 'Summarize the following text into key points, maintaining important details and context.',
-            monitor(m) {
-              m.addEventListener('downloadprogress', ((e: Event) => {
-                const progressEvent = e as DownloadProgressEvent;                
-                setDownloadStatus({
-                  isDownloading: true,
-                  progress: progressEvent.loaded,
-                  total: progressEvent.total,
-                  type: 'summarizer'
-                });
-              }) as EventListener);
-            },
-          });
-
-          if (available === 'after-download') {
-            await summarizerInstance.ready;
+        if (available === 'after-download') {
+          // Ask for user consent before downloading
+          const startDownload = window.confirm(
+            'The summarizer model needs to be downloaded (size: ~3GB). This will be a one-time download. Do you want to proceed?'
+          );
+          
+          if (!startDownload) {
+            setError('Model download cancelled by user. Some features will be unavailable.');
+            return;
           }
+        }
+
+        // Try to create the summarizer instance with progress monitoring and retry mechanism
+        try {
+          const createSummarizerWithRetry = async () => {
+            const summarizerInstance = await ai.summarizer.create({
+              type: 'key-points' as const,
+              format: 'markdown' as const,
+              length: 'medium' as const,
+              sharedContext: 'Summarize the following text into key points, maintaining important details and context.',
+              monitor(m) {
+                // Add network status check to download progress
+                window.addEventListener('offline', () => {
+                  setError('Network connection lost. Download paused.');
+                });
+                
+                window.addEventListener('online', () => {
+                  setError(null);
+                });
+                
+                m.addEventListener('downloadprogress', ((e: Event) => {
+                  const progressEvent = e as DownloadProgressEvent;                
+                  setDownloadStatus({
+                    isDownloading: true,
+                    progress: progressEvent.loaded,
+                    total: progressEvent.total,
+                    type: 'summarizer'
+                  });
+                }) as EventListener);
+              },
+            });
+
+            if (available === 'after-download') {
+              await retryOperation(
+                async () => {
+                  if (!checkOnlineStatus()) {
+                    throw new Error('Network connection lost');
+                  }
+                  await summarizerInstance.ready;
+                },
+                3, // max retries
+                5000 // delay between retries
+              );
+            }
+            
+            return summarizerInstance;
+          };
+
+          const summarizerInstance = await createSummarizerWithRetry();
           
           setDownloadStatus(prev => ({ ...prev, isDownloading: false, type: null }));
           setSummarizer(summarizerInstance);
-          setApiAvailability(prev => ({ ...prev, summarizer: true }));
-        } catch {
-          setError('Failed to create summarizer instance');
+          setApiAvailability((prev: APIAvailability) => ({ ...prev, summarizer: true }));
+        } catch (error) {
+          if (!checkOnlineStatus()) {
+            setError('Network connection lost during setup. Please check your internet connection and try again.');
+          } else {
+            setError(
+              error instanceof Error 
+                ? `Failed to initialize summarizer: ${error.message}` 
+                : 'Failed to create summarizer instance. Please try again.'
+            );
+          }
         }
-      } catch {
-        setError('Failed to initialize Summarizer API');
+      } catch (error) {
+        setError(
+          error instanceof Error 
+            ? `Failed to initialize Summarizer API: ${error.message}` 
+            : 'Failed to initialize Summarizer API. Please ensure Chrome flags are enabled and restart browser.'
+        );
       }
     };
 
@@ -200,13 +361,29 @@ export default function Home() {
 
   useEffect(() => {
     const initializeTranslator = async () => {
+      // Check browser compatibility first
+      const { compatible, message } = await checkBrowserCompatibility();
+      if (!compatible) {
+        setError(message);
+        return;
+      }
+
+      // Check online status
+      if (!checkOnlineStatus()) {
+        setError('You are currently offline. Please check your internet connection.');
+        return;
+      }
+
       try {
         // Check if the APIs are supported
         const hasTranslator = 'ai' in window && 'translator' in (window.ai || {});
         const hasLanguageDetector = 'ai' in window && 'languageDetector' in (window.ai || {});
 
         if (!hasTranslator || !window.ai?.translator) {
-          throw new Error('Translation API is not supported');
+          throw new Error(`The AI features are not available. Please ensure you:
+            1. Are using Google Chrome desktop browser
+            2. Have enabled experimental AI features in chrome://flags
+            3. Have restarted Chrome after enabling the flags`);
         }
 
         // Initialize translator
@@ -266,8 +443,12 @@ export default function Home() {
         }
         
         setDownloadStatus(prev => ({ ...prev, isDownloading: false, type: null }));
-      } catch {
-        setError('Failed to initialize APIs. Please ensure Chrome flags are enabled and restart browser.');
+      } catch (error) {
+        setError(
+          error instanceof Error 
+            ? error.message 
+            : 'Failed to initialize APIs. Please switch to Google Chrome desktop and enable the required experimental flags.'
+        );
       }
     };
 
@@ -346,6 +527,11 @@ export default function Home() {
   const handleTextProcess = async (type: ProcessingType, messageId: string) => {
     const message = messages.find(m => m.id === messageId);
     if (!message) return;
+
+    if (!checkOnlineStatus()) {
+      setError('You are currently offline. Please check your internet connection.');
+      return;
+    }
 
     setError(null);
     setIsProcessing((prev) => ({ ...prev, [type as string]: true }));
@@ -461,7 +647,17 @@ export default function Home() {
         }
       } else if (type === 'summarize' && summarizer) {
         try {
-          const summary = await summarizer.summarize(message.text);
+          const summary = await retryOperation(
+            async () => {
+              if (!checkOnlineStatus()) {
+                throw new Error('Network connection lost');
+              }
+              return await summarizer.summarize(message.text);
+            },
+            3, // max retries
+            5000 // delay between retries
+          );
+          
           processedText = cleanMarkdownFormatting(summary);
           
           const detectedLanguage = await detectLanguage(processedText);
@@ -473,8 +669,12 @@ export default function Home() {
             showSummarize: false
           };
           setMessages(prev => [...prev, newMessage]);
-        } catch {
-          throw new Error('Failed to generate summary. Please try with different text or try again later.');
+        } catch (error) {
+          throw new Error(
+            error instanceof Error 
+              ? `Failed to generate summary: ${error.message}` 
+              : 'Failed to generate summary. Please try with different text or try again later.'
+          );
         }
       }
     } catch (err) {
@@ -551,12 +751,7 @@ export default function Home() {
                   <a href="https://developer.chrome.com/docs/ai/language-detection" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                     Language Detection API Documentation
                   </a>
-                </li>
-                <li>
-                  <a href="https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Asynchronous" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                    Asynchronous JavaScript Handling
-                  </a>
-                </li>
+                </li>                
               </ul>
             </div>
           </Card>
