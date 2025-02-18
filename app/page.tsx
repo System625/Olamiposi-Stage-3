@@ -143,12 +143,9 @@ export default function Home() {
       // First check if the API is supported
       const aiApi = window.ai;
       if (!('ai' in window && 'summarizer' in (aiApi || {}))) {
-        setError('Summarizer API is not supported in this browser');
-        console.log('Summarizer API support check failed');
+        setError('Summarizer API is not supported in this browser');        
         return;
       }
-
-      console.log('Summarizer API is supported');
 
       try {
         if (!window.ai?.summarizer) {
@@ -171,8 +168,7 @@ export default function Home() {
             sharedContext: 'Summarize the following text into key points, maintaining important details and context.',
             monitor(m) {
               m.addEventListener('downloadprogress', ((e: Event) => {
-                const progressEvent = e as DownloadProgressEvent;
-                console.log(`Downloaded ${progressEvent.loaded} of ${progressEvent.total} bytes.`);
+                const progressEvent = e as DownloadProgressEvent;                
                 setDownloadStatus({
                   isDownloading: true,
                   progress: progressEvent.loaded,
@@ -190,14 +186,11 @@ export default function Home() {
           setDownloadStatus(prev => ({ ...prev, isDownloading: false, type: null }));
           setSummarizer(summarizerInstance);
           setApiAvailability(prev => ({ ...prev, summarizer: true }));
-          console.log('Summarizer initialized successfully');
         } catch (initError) {
-          console.error('Error creating summarizer:', initError);
           setError('Failed to create summarizer instance');
         }
       } catch (err) {
         setError('Failed to initialize Summarizer API');
-        console.error('Summarizer initialization error:', err);
       }
     };
 
@@ -207,21 +200,18 @@ export default function Home() {
 
   useEffect(() => {
     const initializeTranslator = async () => {
-      console.log('Initializing translator and language detector...');
-      
+
       try {
         // Check if the APIs are supported
         const hasTranslator = 'ai' in window && 'translator' in (window.ai || {});
         const hasLanguageDetector = 'ai' in window && 'languageDetector' in (window.ai || {});
-        console.log('Has translator:', hasTranslator);
-        console.log('Has language detector:', hasLanguageDetector);
+        
 
         if (!hasTranslator || !window.ai?.translator) {
           throw new Error('Translation API is not supported');
         }
 
         // Initialize translator
-        console.log('Creating initial translator...');
         const initialTranslator = await window.ai.translator.create({
           sourceLanguage: 'en',
           targetLanguage: 'es',
@@ -240,7 +230,6 @@ export default function Home() {
 
         // Wait for the translator to be ready
         if (initialTranslator.ready) {
-          console.log('Waiting for translator to be ready...');
           await initialTranslator.ready;
         }
 
@@ -249,45 +238,35 @@ export default function Home() {
         // Initialize language detector if available
         if (hasLanguageDetector && window.ai?.languageDetector) {
           try {
-            console.log('Checking language detector capabilities...');
             const { available } = await window.ai.languageDetector.capabilities();
             
             if (available === 'no') {
-              console.log('Language detector is not available on this device');
               return;
             }
 
-            console.log('Creating language detector...');
             const detector = await window.ai.languageDetector.create({
               monitor(m) {
                 m.addEventListener('downloadprogress', ((e: Event) => {
                   const progressEvent = e as DownloadProgressEvent;
-                  console.log(`Downloaded detector: ${progressEvent.loaded} of ${progressEvent.total} bytes.`);
                 }) as EventListener);
               },
             });
 
             if (available === 'after-download' && detector.ready) {
-              console.log('Waiting for language detector to be ready...');
               await detector.ready;
             }
 
             // Test the detector
             const testResult = await detector.detect('Hello, world!');
-            console.log('Language detection test result:', testResult);
             if (testResult && testResult.length > 0) {
-              console.log('Language detection is working properly');
               setApiAvailability(prev => ({ ...prev, languageDetector: true }));
             }
           } catch (error) {
-            console.error('Language detector initialization error:', error);
           }
         }
         
         setDownloadStatus(prev => ({ ...prev, isDownloading: false, type: null }));
-        console.log('Initialization completed successfully');
       } catch (error) {
-        console.error('Initialization error:', error);
         setError('Failed to initialize APIs. Please ensure Chrome flags are enabled and restart browser.');
       }
     };
@@ -321,8 +300,7 @@ export default function Home() {
         code: bestResult.detectedLanguage,
         confidence: bestResult.confidence
       };
-    } catch (error) {
-      console.error('Language detection error:', error);
+    } catch (error) {      
       return undefined;
     }
   };
@@ -377,12 +355,10 @@ export default function Home() {
       if (type === 'translate' && window.ai?.translator) {
         try {
           // Check if the target language is supported
-          console.log('Checking language pair availability...');
           const translatorCapabilities = await window.ai.translator.capabilities();
           
           // First try with 'auto' as source
           const autoAvailability = await translatorCapabilities.languagePairAvailable('auto', targetLanguage);
-          console.log(`Availability for auto to ${targetLanguage}:`, autoAvailability);
 
           if (autoAvailability === 'no') {
             // Try with specific source language pairs
@@ -392,7 +368,6 @@ export default function Home() {
 
             for (const sourceLanguage of sourceLanguages) {
               const availability = await translatorCapabilities.languagePairAvailable(sourceLanguage, targetLanguage);
-              console.log(`Availability for ${sourceLanguage} to ${targetLanguage}:`, availability);
               if (availability !== 'no') {
                 supported = true;
                 bestSourceLanguage = sourceLanguage;
@@ -405,14 +380,12 @@ export default function Home() {
             }
 
             // Create a translator with the best available source language
-            console.log(`Creating translator with source language: ${bestSourceLanguage}`);
             const translatorInstance = await window.ai.translator.create({
               sourceLanguage: bestSourceLanguage,
               targetLanguage,
               monitor(m) {
                 m.addEventListener('downloadprogress', ((e: Event) => {
                   const progressEvent = e as DownloadProgressEvent;
-                  console.log(`Downloading language model: ${progressEvent.loaded}/${progressEvent.total} bytes`);
                   setDownloadStatus({
                     isDownloading: true,
                     progress: progressEvent.loaded,
@@ -425,13 +398,10 @@ export default function Home() {
 
             // Wait for the translator to be ready if needed
             if (translatorInstance.ready) {
-              console.log('Waiting for translator to be ready...');
               await translatorInstance.ready;
             }
 
-            console.log('Translating text...');
             const translatedText = await translatorInstance.translate(message.text);
-            console.log('Translation completed');
             
             processedText = translatedText;
             
@@ -447,14 +417,12 @@ export default function Home() {
             setMessages(prev => [...prev, newMessage]);
           } else {
             // Auto detection is supported, use it
-            console.log('Creating translator with auto detection...');
             const translatorInstance = await window.ai.translator.create({
               sourceLanguage: 'auto',
               targetLanguage,
               monitor(m) {
                 m.addEventListener('downloadprogress', ((e: Event) => {
                   const progressEvent = e as DownloadProgressEvent;
-                  console.log(`Downloading language model: ${progressEvent.loaded}/${progressEvent.total} bytes`);
                   setDownloadStatus({
                     isDownloading: true,
                     progress: progressEvent.loaded,
@@ -466,13 +434,10 @@ export default function Home() {
             });
 
             if (translatorInstance.ready) {
-              console.log('Waiting for translator to be ready...');
               await translatorInstance.ready;
             }
 
-            console.log('Translating text...');
             const translatedText = await translatorInstance.translate(message.text);
-            console.log('Translation completed');
             
             processedText = translatedText;
             
