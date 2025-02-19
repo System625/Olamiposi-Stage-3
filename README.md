@@ -121,6 +121,3 @@ This application requires Google Chrome with experimental AI features enabled. O
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## License
-
-[Add your license information here]
