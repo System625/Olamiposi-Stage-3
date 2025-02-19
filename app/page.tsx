@@ -85,8 +85,7 @@ const LANGUAGES = [
   { code: 'en', name: 'English' },
   { code: 'es', name: 'Spanish' },
   { code: 'fr', name: 'French' },
-  { code: 'de', name: 'German' },
-  { code: 'it', name: 'Italian' },
+  { code: 'de', name: 'German' },  
   { code: 'pt', name: 'Portuguese' },
   { code: 'ru', name: 'Russian' },
   { code: 'zh', name: 'Chinese (Simplified)' },
@@ -105,6 +104,7 @@ type Message = {
     confidence: number;
   };
   showSummarize?: boolean;
+  originalText?: string;
 };
 
 // Add new utility functions
@@ -532,6 +532,14 @@ export default function Home() {
     const message = messages.find(m => m.id === messageId);
     if (!message) return;
 
+    // Store the original message ID to track translations
+    const originalMessageId = messageId.endsWith('-translated') 
+      ? messageId.replace('-translated', '')
+      : messageId;
+    
+    const originalMessage = messages.find(m => m.id === originalMessageId);
+    const textToProcess = originalMessage ? originalMessage.text : message.text;
+
     if (!checkOnlineStatus()) {
       setError('You are currently offline. Please check your internet connection.');
       return;
@@ -591,20 +599,26 @@ export default function Home() {
               await translatorInstance.ready;
             }
 
-            const translatedText = await translatorInstance.translate(message.text);
+            const translatedText = await translatorInstance.translate(textToProcess);
             
             processedText = translatedText;
             
             // After translation, add new message with detected language
             const detectedLanguage = await detectLanguage(processedText);
             const newMessage: Message = {
-              id: `${messageId}-translated`,
+              id: `${originalMessageId}-translated`,
               text: processedText,
               type: 'output',
               detectedLanguage,
-              showSummarize: detectedLanguage?.code === 'en' && processedText.length > 150
+              showSummarize: detectedLanguage?.code === 'en' && processedText.length > 150,
+              originalText: textToProcess // Store the original text
             };
-            setMessages(prev => [...prev, newMessage]);
+            
+            // Remove previous translation if it exists
+            setMessages(prev => {
+              const filtered = prev.filter(m => m.id !== `${originalMessageId}-translated`);
+              return [...filtered, newMessage];
+            });
           } else {
             // Auto detection is supported, use it
             const translatorInstance = await window.ai.translator.create({
@@ -627,20 +641,26 @@ export default function Home() {
               await translatorInstance.ready;
             }
 
-            const translatedText = await translatorInstance.translate(message.text);
+            const translatedText = await translatorInstance.translate(textToProcess);
             
             processedText = translatedText;
             
             // After translation, add new message with detected language
             const detectedLanguage = await detectLanguage(processedText);
             const newMessage: Message = {
-              id: `${messageId}-translated`,
+              id: `${originalMessageId}-translated`,
               text: processedText,
               type: 'output',
               detectedLanguage,
-              showSummarize: detectedLanguage?.code === 'en' && processedText.length > 150
+              showSummarize: detectedLanguage?.code === 'en' && processedText.length > 150,
+              originalText: textToProcess // Store the original text
             };
-            setMessages(prev => [...prev, newMessage]);
+            
+            // Remove previous translation if it exists
+            setMessages(prev => {
+              const filtered = prev.filter(m => m.id !== `${originalMessageId}-translated`);
+              return [...filtered, newMessage];
+            });
           }
         } catch (translationError) {
           throw new Error(
@@ -666,7 +686,7 @@ export default function Home() {
           
           const detectedLanguage = await detectLanguage(processedText);
           const newMessage: Message = {
-            id: `${messageId}-summarized`,
+            id: `${originalMessageId}-summarized`,
             text: processedText,
             type: 'output',
             detectedLanguage,
