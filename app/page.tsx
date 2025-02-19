@@ -207,7 +207,11 @@ const checkBrowserCompatibility = async () => {
 
 export default function Home() {
   const [inputText, setInputText] = useState<string>('');
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([{
+    id: 'welcome',
+    text: "👋 Welcome to AI Text Processor! I can help you with:\n\n• Translating text between multiple languages\n• Summarizing long English text into key points\n• Automatically detecting the language of your text\n\nJust type your text in the box below and I'll help you process it!",
+    type: 'output'
+  }]);
   const [isProcessing, setIsProcessing] = useState<{
     summarize: boolean;
     translate: boolean;
