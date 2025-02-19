@@ -532,6 +532,17 @@ export default function Home() {
     const message = messages.find(m => m.id === messageId);
     if (!message) return;
 
+    // Check if APIs are available
+    if (type === 'summarize' && !apiAvailability.summarizer) {
+      setError('Summarizer is not available. Please enable experimental AI features in Chrome and restart the browser.');
+      return;
+    }
+
+    if (type === 'translate' && !apiAvailability.translator) {
+      setError('Translator is not available. Please enable experimental AI features in Chrome and restart the browser.');
+      return;
+    }
+
     // Store the original message ID to track translations
     const originalMessageId = messageId.endsWith('-translated') 
       ? messageId.replace('-translated', '')
@@ -539,6 +550,15 @@ export default function Home() {
     
     const originalMessage = messages.find(m => m.id === originalMessageId);
     const textToProcess = originalMessage ? originalMessage.text : message.text;
+
+    // Prevent translation to same language
+    if (type === 'translate') {
+      const sourceLanguage = message.detectedLanguage?.code || 'en';
+      if (sourceLanguage === targetLanguage) {
+        setError(`Text is already in ${LANGUAGES.find(lang => lang.code === targetLanguage)?.name}. Please select a different target language.`);
+        return;
+      }
+    }
 
     if (!checkOnlineStatus()) {
       setError('You are currently offline. Please check your internet connection.');
@@ -713,13 +733,6 @@ export default function Home() {
       <h1 className="text-4xl font-bold mb-4 text-center">AI Text Processor</h1>
       
       <div className="space-y-4 mb-4">
-        {error && (
-          <Card className="p-6 bg-red-50 border-red-200">
-            <h2 className="text-lg font-semibold mb-4 text-red-700">Error</h2>
-            <p className="text-red-600">{error}</p>
-          </Card>
-        )}
-
         {downloadStatus.isDownloading && downloadStatus.type === 'summarizer' && (
           <Card className="p-6 bg-blue-50 border-blue-200">
             <h2 className="text-lg font-semibold mb-4">Downloading Summarizer Model...</h2>
@@ -804,37 +817,44 @@ export default function Home() {
                 )}
                 
                 {message.type === 'output' && (
-                  <div className="mt-2 flex gap-2 flex-wrap">
-                    {message.showSummarize && (
-              <Button
-                        size="sm"
-                        onClick={() => handleTextProcess('summarize', message.id)}
-                        disabled={isProcessing.summarize}
-              >
-                {isProcessing.summarize ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Summarizing...
-                  </>
-                ) : (
-                  'Summarize'
-                )}
-              </Button>
+                  <div className="mt-2 flex flex-col gap-2">
+                    {error && message.id === messages[messages.length - 1].id && (
+                      <div className="p-3 bg-red-100 border border-red-300 rounded-md text-red-700 text-sm mb-2">
+                        {error}
+                      </div>
                     )}
-              <Button
-                      size="sm"
-                      onClick={() => handleTextProcess('translate', message.id)}
-                      disabled={isProcessing.translate}
-              >
-                {isProcessing.translate ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Translating...
-                  </>
-                ) : (
-                  'Translate'
-                )}
-              </Button>
+                    <div className="flex gap-2 flex-wrap">
+                      {message.showSummarize && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleTextProcess('summarize', message.id)}
+                          disabled={isProcessing.summarize}
+                        >
+                          {isProcessing.summarize ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Summarizing...
+                            </>
+                          ) : (
+                            'Summarize'
+                          )}
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        onClick={() => handleTextProcess('translate', message.id)}
+                        disabled={isProcessing.translate}
+                      >
+                        {isProcessing.translate ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Translating...
+                          </>
+                        ) : (
+                          'Translate'
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
